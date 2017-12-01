@@ -31,9 +31,19 @@
         let token = ''
         let user = null
 
-        function loginFacebook() {
+        
 
+        function loginFacebook(id) {
+
+          console.log(`button ${id} clicked`)
           console.log(`in login function`)
+          let button = document.getElementById(id)
+          button.disabled = true
+          button.innerHTML = "Processing ..."
+
+          let dotter = setInterval( () => {
+            button.innerHTML += '.'
+          }, 500)
   
           firebase.auth().signInWithPopup(provider)
           .then(function(result) {
@@ -95,8 +105,13 @@
                 console.log(`sub result : ${JSON.stringify(data)}`)
                 if(data.success) {
                   console.log('subscribe success')
+                  clearInterval(dotter)
+                  button.innerHTML = "Success!"
                 }
                 else {
+                  clearInterval(dotter)
+                  button.innerHTML = "Fail ..."
+
                   throw 'subscribe to app ERROR'
                 }
               })
@@ -132,7 +147,7 @@
 
     <br><br><br>
     <center>
-      <button type="button" name="button" onclick="loginFacebook()">Login ด้วย Facebook เพื่อเข้าใช้งาน Chatbot</button>
+      <button id="loginButton" type="button" name="button" onclick="loginFacebook(this.id)">Login ด้วย Facebook เพื่อเข้าใช้งาน Chatbot</button>
       <br><br>
       <div id="pages"></div>
     </center>
