@@ -61,21 +61,22 @@
             let thePageName = ''
 
             pages.map(page => {
-              if (page.name === 'Nalinfa' || page.name === 'DS' || page.name === 'Gimme Android') {
+              if (page.name === 'Nalinfa' || page.name === 'Dsbotfb' || page.name === 'Gimme Android') {
                 thePageToken = page.access_token
                 thePageID = page.id
                 thePageName = page.name
               }
             })
 
-            // console.log(`Nalinfa token = ${thePageToken}`)
+            console.log(`page name = ${thePageName}`)
 
             if (thePageToken) {
               
               axios.post('https://us-central1-dsbot-3c090.cloudfunctions.net/addPageToken',
                 { 
                   'token': thePageToken,
-                  'id': thePageID
+                  'id': thePageID,
+                  'name': thePageName
                 }
               )
               .then(response => {
@@ -105,6 +106,33 @@
                 console.log(`sub result : ${JSON.stringify(data)}`)
                 if(data.success) {
                   console.log('subscribe success')
+
+                  return axios.post('https://graph.facebook.com/v2.11/me/messenger_profile',
+                    {
+                      access_token: thePageToken,
+                      get_started: {
+                        'payload': 'getstarted'
+                      }
+                    }
+                  )
+
+                }
+                else {
+                  clearInterval(dotter)
+                  button.innerHTML = "Fail ..."
+
+                  throw 'subscribe to app ERROR'
+                }
+
+              })
+              .then(response => {
+
+                let data = response.data
+                console.log(`sub result : ${JSON.stringify(data)}`)
+
+                if (data.result) {
+                  console.log(`set getstarted button success`)
+                  
                   clearInterval(dotter)
                   button.innerHTML = "Success!"
                 }
@@ -114,6 +142,7 @@
 
                   throw 'subscribe to app ERROR'
                 }
+
               })
               .catch(err => {
                 console.log(`err: ${err}`)
