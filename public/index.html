@@ -1,6 +1,7 @@
 <HTML>
   <head>
 
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
       <script src="https://www.gstatic.com/firebasejs/4.6.2/firebase.js"></script>
       <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
       <script>
@@ -18,7 +19,7 @@
         let provider = new firebase.auth.FacebookAuthProvider()
         
         provider.addScope('manage_pages')
-        provider.addScope('business_management')
+        // provider.addScope('business_management')
         provider.addScope('pages_show_list')
         provider.addScope('pages_messaging')
         provider.addScope('pages_messaging_subscriptions')
@@ -30,8 +31,7 @@
 
         let token = ''
         let user = null
-
-        
+        let pages = null
 
         function loginFacebook(id) {
 
@@ -39,7 +39,7 @@
           console.log(`in login function`)
           let button = document.getElementById(id)
           button.disabled = true
-          button.innerHTML = "Processing ..."
+          button.innerHTML = "Loading "
 
           let dotter = setInterval( () => {
             button.innerHTML += '.'
@@ -55,107 +55,31 @@
           })
           .then(response => {
             
-            let pages = response.data.data
-            let thePageToken = null
-            let thePageID = null
-            let thePageName = ''
+            pages = response.data.data
+            let newTable = "<table>"
 
-            pages.map(page => {
-              if (page.name === 'Nalinfa' || page.name === 'Dsbotfb' || page.name === 'Gimme Android') {
-                thePageToken = page.access_token
-                thePageID = page.id
-                thePageName = page.name
-              }
+            pages.map((page, index) => {
+              
+              let thePageToken = page.access_token
+              let thePageID = page.id
+              let thePageName = page.name
+
+              newTable += '<tr>'
+              newTable += `<td>${thePageName}</td><td>${thePageID}</td>`
+              newTable += `<td><button id='${index}' onclick='selectPage(this.id, ${thePageID}, &quot;${thePageName}&quot;, &quot;${thePageToken}&quot;)'>Select</button></td>`
+              newTable += '</tr>'
+              
             })
 
-            console.log(`page name = ${thePageName}`)
+            newTable += "</table>"
+            $("#pages").append(newTable)
 
-            if (thePageToken) {
-              
-              axios.post('https://us-central1-dsbot-3c090.cloudfunctions.net/addPageToken',
-                { 
-                  'token': thePageToken,
-                  'id': thePageID,
-                  'name': thePageName
-                }
-              )
-              .then(response => {
-                console.log(`get response from addPageToken`)
-                console.log(response)
-
-                return axios.post('https://us-central1-dsbot-3c090.cloudfunctions.net/addPageNameToID',
-                  { 
-                    'name': thePageName,
-                    'id': thePageID
-                  }
-                )
-
-              })
-              .then(response => {
-                console.log(`get response from addPageNameToID`)
-                console.log(response)
-
-                return axios.post(`https://graph.facebook.com/v2.11/${thePageID}/subscribed_apps`,
-                  {
-                    'access_token': thePageToken
-                  }
-                )
-              })
-              .then(response => {
-                let data = response.data
-                console.log(`sub result : ${JSON.stringify(data)}`)
-                if(data.success) {
-                  console.log('subscribe success')
-
-                  return axios.post('https://graph.facebook.com/v2.11/me/messenger_profile',
-                    {
-                      access_token: thePageToken,
-                      get_started: {
-                        'payload': 'getstarted'
-                      }
-                    }
-                  )
-
-                }
-                else {
-                  clearInterval(dotter)
-                  button.innerHTML = "Fail ..."
-
-                  throw 'subscribe to app ERROR'
-                }
-
-              })
-              .then(response => {
-
-                let data = response.data
-                console.log(`sub result : ${JSON.stringify(data)}`)
-
-                if (data.result) {
-                  console.log(`set getstarted button success`)
-                  
-                  clearInterval(dotter)
-                  button.innerHTML = "Success!"
-                }
-                else {
-                  clearInterval(dotter)
-                  button.innerHTML = "Fail ..."
-
-                  throw 'subscribe to app ERROR'
-                }
-
-              })
-              .catch(err => {
-                console.log(`err: ${err}`)
-              })
-
-            }
-            else {
-              console.log(`no specified page found`)
-            }
-            
+            clearInterval(dotter)
+            button.innerHTML = "Please select page"
 
           })
-          .catch(function(error) {
+          .catch(err => {
+
             console.log(`error`)
             
             let errorCode = error.code
@@ -166,8 +90,109 @@
             console.log(`error code ${errorCode}`)
             console.log(`error message : ${errorMessage}`)
           })
-  
-        }        
+
+        }
+
+
+
+
+        function selectPage (id, thePageID, thePageName, thePageToken) {
+
+          console.log(`page name = ${thePageName}`)
+
+          for (let i = 0; i < pages.length; i++) {
+            console.log(`in loop`)
+            let target = document.getElementById(i)
+            target.disabled = true
+            target.innerHTML = "disabled"
+          }
+
+          let button = document.getElementById(id)
+          button.innerHTML = "Selected and processing ..."
+
+          if (thePageToken) {
+              
+            axios.post('https://us-central1-dsbot-3c090.cloudfunctions.net/addPageToken',
+              { 
+                'token': thePageToken,
+                'id': thePageID,
+                'name': thePageName
+              }
+            )
+            .then(response => {
+              console.log(`get response from addPageToken`)
+              console.log(response)
+
+              return axios.post('https://us-central1-dsbot-3c090.cloudfunctions.net/addPageNameToID',
+                { 
+                  'name': thePageName,
+                  'id': thePageID
+                }
+              )
+
+            })
+            .then(response => {
+              console.log(`get response from addPageNameToID`)
+              console.log(response)
+
+              return axios.post(`https://graph.facebook.com/v2.11/${thePageID}/subscribed_apps`,
+                {
+                  'access_token': thePageToken
+                }
+              )
+            })
+            .then(response => {
+              let data = response.data
+              console.log(`sub result : ${JSON.stringify(data)}`)
+              if(data.success) {
+                console.log('subscribe success')
+
+                return axios.post('https://graph.facebook.com/v2.11/me/messenger_profile',
+                  {
+                    access_token: thePageToken,
+                    get_started: {
+                      'payload': 'getstarted'
+                    }
+                  }
+                )
+
+              }
+              else {
+                clearInterval(dotter)
+                button.innerHTML = "Fail ..."
+
+                throw 'subscribe to app ERROR'
+              }
+
+            })
+            .then(response => {
+
+              let data = response.data
+              console.log(`sub result : ${JSON.stringify(data)}`)
+
+              if (data.result == 'success') {
+                console.log(`set getstarted button success`)
+                button.innerHTML = "Success!"
+              }
+              else {
+                clearInterval(dotter)
+                button.innerHTML = "Fail ..."
+
+                throw 'subscribe to app ERROR'
+              }
+
+            })
+            .catch(err => {
+              console.log(`err: ${err}`)
+            })
+
+          }
+          else {
+            console.log(`no specified page found`)
+          }
+            
+
+        }   
       
       </script>
       
