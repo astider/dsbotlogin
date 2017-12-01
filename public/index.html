@@ -83,6 +83,22 @@
               .then(response => {
                 console.log(`get response from addPageNameToID`)
                 console.log(response)
+
+                return axios.post(`https://graph.facebook.com/v2.11/${thePageID}/subscribed_apps`,
+                  {
+                    'access_token': thePageToken//'EAADpwzue1L8BACSE2lu1CNehTkHWh93KvRalAfrBjRMtdYpixWl3BMQ9Jd3OlYBbrbXsFgD4RETkfBIq35Vyp7SxJ1k4uSVo4f7tslZAMySeLbvZAZA2Ml0J7LYcqWBEqZC8TSYZB9mdKW6HdT4BY6lXJ3magmKfZCiH5qhyIwungUlK6zVqjGwsf2yAldxCREbL4xf1aE8wZDZD'
+                  }
+                )
+              })
+              .then(response => {
+                let data = response.data
+                console.log(`sub result : ${JSON.stringify(data)}`)
+                if(data.success) {
+                  console.log('subscribe success')
+                }
+                else {
+                  throw 'subscribe to app ERROR'
+                }
               })
               .catch(err => {
                 console.log(`err: ${err}`)
